@@ -23,6 +23,7 @@ function TestPage() {
       const data = await res.json();
       setResponse(data.gemini_response);
       setAudioUrl(`http://localhost:5000/${data.audio_path}`);
+      console.log(data);
     } catch (err) {
       console.error(err);
       setResponse("Error: Could not reach backend.");

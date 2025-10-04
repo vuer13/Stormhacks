@@ -11,6 +11,8 @@ import os
 
 from flask_cors import CORS
 
+import time
+
 # Load .env stuff
 load_dotenv()
 
@@ -101,7 +103,8 @@ def eleven_labs(prompt, voice_id, settings):
     
     audio = elevenlabs_client.text_to_speech.convert(**kwargs)
     
-    filename = "output.mp3"
+    #Append timestamp to filename so that the audio file updates properly when we give it new input
+    filename = f"output_{int(time.time())}.mp3"
     output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, filename)
