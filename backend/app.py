@@ -4,7 +4,7 @@ from elevenlabs.client import ElevenLabs
 
 import speech_recognition as sr
 
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
 
 from dotenv import load_dotenv
 import os
@@ -101,8 +101,10 @@ def eleven_labs(prompt, voice_id, settings):
     
     audio = elevenlabs_client.text_to_speech.convert(**kwargs)
     
-    output_path = "output/output.mp3"
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    filename = "output.mp3"
+    output_dir = "output"
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, filename)
     
     with open(output_path, "wb") as f:
         for chunk in audio:
@@ -117,6 +119,12 @@ def extract_text(audio_path):
         audio_data = recognizer.record(source)
         text = recognizer.recognize_google(audio_data)
     return text
-    
+
+
+@app.route('/output/<path:filename>')
+def serve_output(filename):
+    return send_from_directory("output", filename)
+
+
 if __name__ == "__main__":
     app.run(debug=True)
