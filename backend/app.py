@@ -107,7 +107,8 @@ def eleven_labs(prompt, voice_id, settings):
             f.write(chunk)
             
     return output_path
-            
+        
+# Get text from audio    
 def extract_text(audio_path):
     recognizer = sr.Recognizer()
     with sr.AudioFile(audio_path) as source:
