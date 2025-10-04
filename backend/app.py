@@ -9,6 +9,8 @@ from flask import Flask, request, jsonify, send_file
 from dotenv import load_dotenv
 import os
 
+from flask_cors import CORS
+
 # Load .env stuff
 load_dotenv()
 
@@ -22,7 +24,7 @@ elevenlabs_client = ElevenLabs(api_key=elevenlabs_api_key)
 
 # Flask
 app = Flask(__name__)
-
+CORS(app)
 @app.route('/generate', methods=["POST"])
 def generate():
     if "file" in request.files:
