@@ -4,6 +4,8 @@ from elevenlabs.client import ElevenLabs
 
 import speech_recognition as sr
 
+from flask import Flask, request, jsonify, send_file
+
 from dotenv import load_dotenv
 import os
 
@@ -18,6 +20,10 @@ gemini_client = genai.Client(api_key=gemini_api_key)
 elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY")
 elevenlabs_client = ElevenLabs(api_key=elevenlabs_api_key)
 
+# Flask
+app = Flask(__name__)
+
+@app.route('/generate', methods=["POST"])
 def generate():
     if "file" in request.files:
         file = request.files["file"]
@@ -48,7 +54,7 @@ def generate():
     speech = eleven_labs(response, voice_id, use_settings) # Send some old grandpa voice is default
         
     return jsonify({
-        "gemini_response": response.text,
+        "gemini_response": response,
         "audio_path": speech
     }), 200
 
@@ -110,5 +116,4 @@ def extract_text(audio_path):
     return text
     
 if __name__ == "__main__":
-    # DO SOMETHING
-    pass
+    app.run(debug=True)
