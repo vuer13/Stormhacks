@@ -16,6 +16,9 @@ gemini_client = genai.Client(api_key=gemini_api_key)
 elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY")
 elevenlabs_client = ElevenLabs(api_key=elevenlabs_api_key)
 
+def generate():
+    
+
 # Function to create prompts
 def create_prompt(prompt):
     full_input = f"""You are a supportive assistant. Based on the user's message below, respond in a way that reassures, provides advice, or encourages them. 
@@ -38,6 +41,24 @@ def create_prompt(prompt):
     print(response.text)
     
     return response.text
+
+# Function to turn text into speech
+def eleven_labs():
+    prompt = "李安一很笨"
+    
+    audio = elevenlabs_client.text_to_speech.convert(
+        voice_id="EXAVITQu4vr4xnSDxMaL",
+        model_id="eleven_multilingual_v2",
+        text=prompt
+    )
+    
+    output_path = "output/output.mp3"
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    
+    with open(output_path, "wb") as f:
+        for chunk in audio:
+            f.write(chunk)
     
 if __name__ == "__main__":
-    create_prompt("My team is not going to win the stanley cup")
+    # DO SOMETHING
+    pass
