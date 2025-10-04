@@ -2,6 +2,8 @@ from google import genai
 from elevenlabs import play
 from elevenlabs.client import ElevenLabs
 
+import speech_recognition as sr
+
 from dotenv import load_dotenv
 import os
 
@@ -17,7 +19,38 @@ elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY")
 elevenlabs_client = ElevenLabs(api_key=elevenlabs_api_key)
 
 def generate():
+    if "file" in request.files:
+        file = request.files["file"]
+        filepath = os.path.join("uploads", file.filename)
+        os.makedirs("uploads", exist_ok=True)
+        file.save(filepath)
+        
+        text = extract_text(filepath)
+        
+        voice = elevenlabs_client.voices.add(
+            name="VoiceClone",
+            files=[filepath]
+        )
+        
+        voice_id = voice.voice_id
+        use_settings = True
+    elif request.is_json:
+        data = request.get_json()
+        text = data.get("text")
+        
+        voice_id = "0lp4RIz96WD1RUtvEu3Q" # Old grandfather voice
+        use_settings = False
+    else:
+        return jsonify({"error": "Invalid input"}), 400
     
+    
+    response = create_prompt(text) # Gemini text
+    speech = eleven_labs(response, voice_id, use_settings) # Send some old grandpa voice is default
+        
+    return jsonify({
+        "gemini_response": response.text,
+        "audio_path": speech
+    }), 200
 
 # Function to create prompts
 def create_prompt(prompt):
@@ -43,14 +76,22 @@ def create_prompt(prompt):
     return response.text
 
 # Function to turn text into speech
-def eleven_labs():
-    prompt = "李安一很笨"
+def eleven_labs(prompt, voice_id, settings):    
+    kwargs = {
+        "voice_id": voice_id,
+        "model_id": "eleven_multilingual_v2",
+        "text": prompt
+    }
     
-    audio = elevenlabs_client.text_to_speech.convert(
-        voice_id="EXAVITQu4vr4xnSDxMaL",
-        model_id="eleven_multilingual_v2",
-        text=prompt
-    )
+    if settings:
+        kwargs["voice_settings"] = {
+            "stability": 0.3,
+            "similarity_boost": 0.7,
+            "style": 0.6,
+            "use_effects_mixer": True
+        }
+    
+    audio = elevenlabs_client.text_to_speech.convert(**kwargs)
     
     output_path = "output/output.mp3"
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -58,6 +99,15 @@ def eleven_labs():
     with open(output_path, "wb") as f:
         for chunk in audio:
             f.write(chunk)
+            
+    return output_path
+            
+def extract_text(audio_path):
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(audio_path) as source:
+        audio_data = recognizer.record(source)
+        text = recognizer.recognize_google(audio_data)
+    return text
     
 if __name__ == "__main__":
     # DO SOMETHING
