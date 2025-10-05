@@ -22,3 +22,7 @@ venv/
 output/
 uploads/
 __pycache__/
+
+model/*.zip
+model/*.safetensors
+model/*.bin
