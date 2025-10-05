@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Chat() {
@@ -27,13 +27,30 @@ export default function Chat() {
 
   // ----------------- BEGINNING OF BACKEND HOOKS -----------------
   const [input, setInput] = useState("");
-  const [response, setResponse] = useState("");
+  const [messages, setMessages] = useState([]); // Store all messages
   const [audioUrl, setAudioUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+
+  // Load messages from localStorage on mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('chatMessages');
+    if (savedMessages) {
+      // Only load last 4 messages
+      const parsed = JSON.parse(savedMessages);
+      setMessages(parsed.slice(-4));
+    }
+  }, []);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('chatMessages', JSON.stringify(messages));
+    }
+  }, [messages]);
 
   // Start recording
   const startRecording = async () => {
@@ -64,8 +81,15 @@ export default function Chat() {
     formData.append("file", blob, "recording.wav");
 
     setLoading(true);
-    setResponse("");
     setAudioUrl(null);
+
+    // Add user message (audio recording indicator)
+    const userMessage = { sender: "user", text: "[Voice message]", timestamp: Date.now() };
+    setMessages(prev => {
+      const updated = [...prev, userMessage];
+      // Keep only last 4 messages
+      return updated.slice(-4);
+    });
 
     try {
       const res = await fetch("http://localhost:5000/generate", {
@@ -76,11 +100,22 @@ export default function Chat() {
       if (!res.ok) throw new Error("Backend request failed");
       const data = await res.json();
 
-      setResponse(data.gemini_response);
+      // Add AI response
+      const aiMessage = { sender: "ai", text: data.gemini_response, timestamp: Date.now() };
+      setMessages(prev => {
+        const updated = [...prev, aiMessage];
+        // Keep only last 4 messages
+        return updated.slice(-4);
+      });
       setAudioUrl(data.audio_path);
     } catch (err) {
       console.error(err);
-      setResponse("Error: Could not reach backend.");
+      const errorMessage = { sender: "ai", text: "Error: Could not reach backend.", timestamp: Date.now() };
+      setMessages(prev => {
+        const updated = [...prev, errorMessage];
+        // Keep only last 4 messages
+        return updated.slice(-4);
+      });
     } finally {
       setLoading(false);
     }
@@ -89,27 +124,48 @@ export default function Chat() {
   // Send text input
   const handleSendText = async () => {
     if (!input.trim()) return; // no empty messages
+
+    const userText = input;
+    setInput(""); // clear text box immediately
     setLoading(true);
-    setResponse("");
     setAudioUrl(null);
+
+    // Add user message
+    const userMessage = { sender: "user", text: userText, timestamp: Date.now() };
+    setMessages(prev => {
+      const updated = [...prev, userMessage];
+      // Keep only last 4 messages
+      return updated.slice(-4);
+    });
 
     try {
       const res = await fetch("http://localhost:5000/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: input }),
+        body: JSON.stringify({ text: userText }),
       });
 
       if (!res.ok) throw new Error("Backend request failed");
       const data = await res.json();
-      setResponse(data.gemini_response);
+
+      // Add AI response
+      const aiMessage = { sender: "ai", text: data.gemini_response, timestamp: Date.now() };
+      setMessages(prev => {
+        const updated = [...prev, aiMessage];
+        // Keep only last 4 messages
+        return updated.slice(-4);
+      });
       setAudioUrl(data.audio_path);
     } catch (err) {
       console.error(err);
-      setResponse("Error: Could not reach backend.");
+      const errorMessage = { sender: "ai", text: "Error: Could not reach backend.", timestamp: Date.now() };
+      setMessages(prev => {
+        const updated = [...prev, errorMessage];
+        // Keep only last 4 messages
+        return updated.slice(-4);
+      });
     } finally {
       setLoading(false);
-      setInput(""); // clear text box
     }
   };
   // ----------------- END OF BACKEND HOOKS -----------------
@@ -154,11 +210,11 @@ export default function Chat() {
 
       <div className="h-screen w-screen bg-black relative overflow-hidden">
         {/* Navigation Bar */}
-        <nav className="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-[#474DFF]/30 backdrop-blur-sm rounded-2xl px-48 py-4 w-[1400px]">
+        <nav className="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-[#474DFF]/30 backdrop-blur-sm rounded-2xl px-8 sm:px-12 md:px-16 lg:px-24 py-2 sm:py-3 md:py-4 w-[calc(100%-4rem)] sm:w-[calc(100%-6rem)] md:w-[calc(100%-8rem)] lg:w-[calc(100%-12rem)] max-w-[1200px]">
           <div className="flex items-center justify-around">
             <button
               onClick={() => navigate('/')}
-              className="text-[#D7D8FF] hover:text-[#9B9BFF] hover:scale-90 transition-all duration-300 text-base font-medium"
+              className="text-[#D7D8FF] hover:text-[#9B9BFF] hover:scale-90 transition-all duration-300 text-xs sm:text-sm md:text-base font-medium"
               style={{
                 textShadow: '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'
               }}
@@ -168,7 +224,8 @@ export default function Chat() {
               Home
             </button>
             <button
-              className="text-[#D7D8FF] hover:text-[#9B9BFF] hover:scale-90 transition-all duration-300 text-base font-medium"
+              onClick={() => navigate('/about')}
+              className="text-[#D7D8FF] hover:text-[#9B9BFF] hover:scale-90 transition-all duration-300 text-xs sm:text-sm md:text-base font-medium"
               style={{
                 textShadow: '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'
               }}
@@ -178,7 +235,7 @@ export default function Chat() {
               About
             </button>
             <button
-              className="text-[#D7D8FF] hover:text-[#9B9BFF] hover:scale-90 transition-all duration-300 text-base font-medium"
+              className="text-[#D7D8FF] hover:text-[#9B9BFF] hover:scale-90 transition-all duration-300 text-xs sm:text-sm md:text-base font-medium"
               style={{
                 textShadow: '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'
               }}
@@ -212,23 +269,50 @@ export default function Chat() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
           {/* Spinning Flower behind */}
           <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center" style={{ animation: 'spin 10s linear infinite' }}>
-            <img src="/Flower.svg" alt="Flower" className="w-auto h-auto opacity-60" />
+            <img src="/Flower.svg" alt="Flower" className="w-80 h-80 sm:w-96 sm:h-96 md:w-[28rem] md:h-[28rem] lg:w-[32rem] lg:h-[32rem] opacity-60" />
           </div>
           {/* Center Image on top */}
-          <img src="/CenterImage.svg" alt="Center" className="relative z-10 w-auto h-auto opacity-70" />
+          <img src="/CenterImage.svg" alt="Center" className="relative z-10 w-80 h-80 sm:w-96 sm:h-96 md:w-[28rem] md:h-[28rem] lg:w-[32rem] lg:h-[32rem] opacity-70" />
         </div>
 
         {/* Chat Area */}
         <div className="relative z-10 h-full flex flex-col">
-          <div className="flex-1 overflow-y-auto px-6 pb-20 pt-24 text-white">
-            {!loading && !response && (
-              <p className="text-[#9B9BFF]/50 text-sm mt-4">Your conversation will appear here...</p>
-            )}
-            {loading && <p>Loading...</p>}
-            {response && <p className="mb-2">Future You: {response}</p>}
-            {audioUrl && (
-              <audio controls src={audioUrl} className="mt-2" autoPlay />
-            )}
+          <div className="flex-1 px-12 md:px-16 lg:px-20 pb-20 pt-8 flex items-center justify-center">
+            <div className="max-w-6xl w-full">
+              {messages.length === 0 && !loading && (
+                <p className="text-[#9B9BFF]/50 text-sm mt-4 text-center">Your conversation will appear here...</p>
+              )}
+
+              <div className="flex flex-col space-y-6">
+                {messages.map((msg, index) => (
+                  <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-2xl px-6 py-4 max-w-lg">
+                      <p
+                        className={`text-sm mb-1 font-semibold ${msg.sender === 'user' ? 'text-white/90' : 'text-[#EDFF62]'}`}
+                        style={{ fontFamily: 'Cascadia Code, monospace' }}
+                      >
+                        {msg.sender === 'user' ? 'You' : 'Future You'}
+                      </p>
+                      <p className="text-white/70" style={{ fontFamily: 'Cascadia Code, monospace' }}>{msg.text}</p>
+                    </div>
+                  </div>
+                ))}
+
+                {loading && (
+                  <div className="flex justify-center">
+                    <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-2xl px-6 py-4 max-w-md">
+                      <p className="text-white/70" style={{ fontFamily: 'Cascadia Code, monospace' }}>Loading...</p>
+                    </div>
+                  </div>
+                )}
+
+                {audioUrl && (
+                  <div className="flex justify-center">
+                    <audio controls src={audioUrl} className="mt-2" autoPlay />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -289,13 +373,13 @@ export default function Chat() {
               onMouseLeave={() => setIsHovered(false)}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendText()}
-              className={`text-white text-sm border-none outline-none
+              className={`text-white text-sm outline-none
                          ${
                            isActive
                              ? "w-[600px] h-[120px] px-6 py-4 bg-[#2D31B0]/10 border-2 border-[#9B9BFF]/50 placeholder-[#9B9BFF]/70 translate-y-[-100px] mix-blend-color-burn"
                              : isHovered
-                             ? "w-[242px] h-[90px] px-5 pb-8 pt-3 bg-[#5B5FFF]/40 placeholder-white/90 shadow-[inset_0_-20px_40px_rgba(255,255,255,0.3)] translate-y-[-15px]"
-                             : "w-[220px] h-16 px-5 pb-8 pt-3 bg-[#474DFF]/30 placeholder-white/70"
+                             ? "w-[242px] h-[90px] px-5 pb-8 pt-3 bg-[#5B5FFF]/40 border-2 border-white/30 placeholder-white/90 shadow-[inset_0_-20px_40px_rgba(255,255,255,0.3)] translate-y-[-15px]"
+                             : "w-[220px] h-16 px-5 pb-8 pt-3 bg-[#474DFF]/30 border-2 border-white/20 placeholder-white/70"
                          }`}
               style={{
                 fontFamily: "Cascadia Code, monospace",

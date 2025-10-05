@@ -140,33 +140,33 @@ export default function Home() {
         </div>
 
         {/* Main content */}
-        <div className="relative z-10 flex flex-col items-center justify-center pt-4 px-8">
+        <div className="relative z-10 flex flex-col items-center justify-center pt-8 px-8">
           {/* FutureVent Logo */}
           <img
             src="/typography.png"
             alt="FutureVent"
-            className="w-auto h-[28rem] md:h-[32rem]"
+            className="w-auto h-[22rem] sm:h-[24rem] md:h-[26rem] lg:h-[28rem]"
           />
 
           {/* Description Text */}
           <img
             src="/HomeDescriptionText.svg"
             alt="Get in touch with your potential future self and share your life problems."
-            className="w-auto h-8 md:h-10 mt-6"
+            className="w-auto h-8 sm:h-9 md:h-10 lg:h-12 mt-8 md:mt-10"
           />
         </div>
 
         {/* Microphone Button - Centered Bottom Half */}
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10">
+        <div className="absolute bottom-8 md:bottom-10 left-1/2 -translate-x-1/2 z-10">
           <div className="relative inline-block">
             {/* Circular Text - Spins continuously, pauses on hover */}
-            <svg 
+            <svg
               id="circularText"
               className="absolute top-1/2 left-1/2 pointer-events-none"
-              width="200"
-              height="200"
+              width="180"
+              height="180"
               viewBox="0 0 200 200"
-              style={{ 
+              style={{
                 animation: 'spinText 8s linear infinite'
               }}
             >
@@ -179,7 +179,7 @@ export default function Home() {
               <text style={{
                 fontFamily: 'Cascadia Code, monospace',
                 fill: '#EDFF62',
-                fontSize: '14px',
+                fontSize: '13px',
                 fontWeight: '800',
                 letterSpacing: '-0.5px'
               }}>
@@ -188,10 +188,10 @@ export default function Home() {
                 </textPath>
               </text>
             </svg>
-            
+
             {/* Microphone Button */}
-            <button 
-            
+            <button
+
               className="relative transition-transform duration-300 hover:scale-105"
               style={{
                 animation: 'none'
@@ -199,7 +199,7 @@ export default function Home() {
               onMouseEnter={(e) => {
                 e.currentTarget.style.animation = 'pulseGlow 3.5s ease-in-out infinite';
                 const textEl = document.getElementById('circularText');
-                
+
                 // Pause animation and lock position
                 textEl.style.animationPlayState = 'paused';
               }}
@@ -207,15 +207,15 @@ export default function Home() {
               onMouseLeave={(e) => {
                 e.currentTarget.style.animation = 'none';
                 const textEl = document.getElementById('circularText');
-                
+
                 // Resume animation from current position
                 textEl.style.animationPlayState = 'running';
               }}
             >
-              <img 
-                src="/MIC.png" 
-                alt="Confide in yourself" 
-                className="w-auto h-36 md:h-40"
+              <img
+                src="/MIC.png"
+                alt="Confide in yourself"
+                className="w-auto h-28 sm:h-32 md:h-36"
               />
             </button>
           </div>
