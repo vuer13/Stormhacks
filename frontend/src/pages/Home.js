@@ -191,6 +191,7 @@ export default function Home() {
             
             {/* Microphone Button */}
             <button 
+            
               className="relative transition-transform duration-300 hover:scale-105"
               style={{
                 animation: 'none'
