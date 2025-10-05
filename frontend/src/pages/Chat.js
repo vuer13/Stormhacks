@@ -311,7 +311,7 @@ export default function Chat() {
 
                 {audioUrl && (
                   <div className="flex justify-center">
-                    <audio controls src={audioUrl} className="mt-2" autoPlay />
+                    <audio src={audioUrl} autoPlay style={{ display: "none" }} />
                   </div>
                 )}
               </div>
