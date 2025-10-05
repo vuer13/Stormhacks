@@ -1,7 +1,10 @@
 import React, { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Chat() {
+  const navigate = useNavigate();
   const [isActive, setIsActive] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
 
@@ -142,9 +145,51 @@ export default function Chat() {
           50% { transform: translate(130px, -80px) scale(0.9); }
           80% { transform: translate(-150px, 100px) scale(1.1); }
         }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
       `}</style>
 
       <div className="h-screen w-screen bg-black relative overflow-hidden">
+        {/* Navigation Bar */}
+        <nav className="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-[#474DFF]/30 backdrop-blur-sm rounded-2xl px-48 py-4 w-[1400px]">
+          <div className="flex items-center justify-around">
+            <button
+              onClick={() => navigate('/')}
+              className="text-[#D7D8FF] hover:text-[#9B9BFF] hover:scale-90 transition-all duration-300 text-base font-medium"
+              style={{
+                textShadow: '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.textShadow = 'none'}
+              onMouseLeave={(e) => e.currentTarget.style.textShadow = '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'}
+            >
+              Home
+            </button>
+            <button
+              className="text-[#D7D8FF] hover:text-[#9B9BFF] hover:scale-90 transition-all duration-300 text-base font-medium"
+              style={{
+                textShadow: '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.textShadow = 'none'}
+              onMouseLeave={(e) => e.currentTarget.style.textShadow = '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'}
+            >
+              About
+            </button>
+            <button
+              className="text-[#D7D8FF] hover:text-[#9B9BFF] hover:scale-90 transition-all duration-300 text-base font-medium"
+              style={{
+                textShadow: '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.textShadow = 'none'}
+              onMouseLeave={(e) => e.currentTarget.style.textShadow = '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'}
+            >
+              Settings
+            </button>
+          </div>
+        </nav>
+
         {/* Clouds */}
         <div className="absolute inset-0">
           {Object.entries(cloudPositions).map(([key, pos], idx) => (
@@ -163,15 +208,22 @@ export default function Chat() {
           ))}
         </div>
 
+        {/* Center Images */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+          {/* Spinning Flower behind */}
+          <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center" style={{ animation: 'spin 10s linear infinite' }}>
+            <img src="/Flower.svg" alt="Flower" className="w-auto h-auto opacity-60" />
+          </div>
+          {/* Center Image on top */}
+          <img src="/CenterImage.svg" alt="Center" className="relative z-10 w-auto h-auto opacity-70" />
+        </div>
+
         {/* Chat Area */}
         <div className="relative z-10 h-full flex flex-col">
-          <div className="p-6">
-            <h1 className="text-white text-2xl font-bold">
-              Chat with your future self
-            </h1>
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-6 pb-20 text-white">
+          <div className="flex-1 overflow-y-auto px-6 pb-20 pt-24 text-white">
+            {!loading && !response && (
+              <p className="text-[#9B9BFF]/50 text-sm mt-4">Your conversation will appear here...</p>
+            )}
             {loading && <p>Loading...</p>}
             {response && <p className="mb-2">Future You: {response}</p>}
             {audioUrl && (
@@ -181,12 +233,13 @@ export default function Chat() {
         </div>
 
         {/* Bottom controls */}
-        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-20">
+        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 z-20">
           {/* Audio buttons */}
           <div
-            className={`transition-all duration-[1800ms] mb-4 flex justify-center`}
+            className={`transition-all flex justify-center`}
             style={{
-              transform: isActive ? "translateY(-80px)" : "translateY(0)",
+              transform: isActive ? "translateY(-100px)" : isHovered ? "translateY(-15px)" : "translateY(0)",
+              marginBottom: "16px",
               transition: "all 1.8s cubic-bezier(0.25, 0.1, 0.25, 1)",
             }}
           >
@@ -201,21 +254,25 @@ export default function Chat() {
                   }
                   setIsMicMuted(!isMicMuted);
                 }}
-                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#474DFF] hover:bg-[#5B5FFF] transition-all"
+                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#474DFF] hover:bg-[#5B5FFF] hover:scale-90 hover:shadow-[0_0_15px_rgba(91,95,255,0.6)] transition-all duration-300"
               >
                 {recording ? (
-                  <span className="text-white">⏹</span>
+                  <img src="/MicActive.svg" alt="Recording" className="w-6 h-6" />
                 ) : (
-                  <span className="text-white">🎙</span>
+                  <img src="/MicDeactive.svg" alt="Mic Muted" className="w-6 h-6" />
                 )}
               </button>
 
               {/* Deafen button */}
               <button
                 onClick={() => setIsDeafened(!isDeafened)}
-                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#474DFF] hover:bg-[#5B5FFF] transition-all"
+                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#474DFF] hover:bg-[#5B5FFF] hover:scale-90 hover:shadow-[0_0_15px_rgba(91,95,255,0.6)] transition-all duration-300"
               >
-                {isDeafened ? "🙉" : "🎧"}
+                {isDeafened ? (
+                  <img src="/DeafenOn.svg" alt="Deafened" className="w-6 h-6" />
+                ) : (
+                  <img src="/DeafenOff.svg" alt="Not Deafened" className="w-6 h-6" />
+                )}
               </button>
             </div>
           </div>
@@ -228,18 +285,26 @@ export default function Chat() {
               value={input}
               onFocus={() => setIsActive(true)}
               onBlur={() => setIsActive(false)}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendText()}
-              className={`transition-all duration-[1800ms] text-white text-sm
-                         border-none outline-none
+              className={`text-white text-sm border-none outline-none
                          ${
                            isActive
-                             ? "w-[600px] h-[120px] px-6 py-4 bg-[#2D31B0]/10 border-2 border-[#9B9BFF] placeholder-[#9B9BFF]/70"
-                             : "w-[220px] h-16 px-5 pb-8 pt-3 bg-[#474DFF]/50 placeholder-white/70"
+                             ? "w-[600px] h-[120px] px-6 py-4 bg-[#2D31B0]/10 border-2 border-[#9B9BFF]/50 placeholder-[#9B9BFF]/70 translate-y-[-100px] mix-blend-color-burn"
+                             : isHovered
+                             ? "w-[242px] h-[90px] px-5 pb-8 pt-3 bg-[#5B5FFF]/40 placeholder-white/90 shadow-[inset_0_-20px_40px_rgba(255,255,255,0.3)] translate-y-[-15px]"
+                             : "w-[220px] h-16 px-5 pb-8 pt-3 bg-[#474DFF]/30 placeholder-white/70"
                          }`}
               style={{
                 fontFamily: "Cascadia Code, monospace",
                 borderRadius: "16px",
+                transition: isActive
+                  ? "all 1.8s cubic-bezier(0.25, 0.1, 0.25, 1)"
+                  : isHovered
+                  ? "all 0.7s cubic-bezier(0.25, 0.1, 0.25, 1)"
+                  : "all 1.8s cubic-bezier(0.25, 0.1, 0.25, 1)",
               }}
             />
           </div>

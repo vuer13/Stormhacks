@@ -140,19 +140,19 @@ export default function Home() {
         </div>
 
         {/* Main content */}
-        <div className="relative z-10 flex flex-col items-start pt-16 px-8">
+        <div className="relative z-10 flex flex-col items-center justify-center pt-4 px-8">
           {/* FutureVent Logo */}
-          <img 
-            src="/FutureVentText.png" 
-            alt="FutureVent" 
-            className="w-auto h-56 md:h-64 ml-32"
+          <img
+            src="/typography.png"
+            alt="FutureVent"
+            className="w-auto h-[28rem] md:h-[32rem]"
           />
-          
+
           {/* Description Text */}
-          <img 
-            src="/DescriptionText.png" 
-            alt="Get in touch with your potential future self and share your life problems." 
-            className="w-auto h-10 md:h-12 mt-6 ml-36"
+          <img
+            src="/HomeDescriptionText.svg"
+            alt="Get in touch with your potential future self and share your life problems."
+            className="w-auto h-8 md:h-10 mt-6"
           />
         </div>
 
@@ -176,12 +176,12 @@ export default function Home() {
                   d="M 100, 100 m -80, 0 a 80,80 0 1,1 160,0 a 80,80 0 1,1 -160,0"
                 />
               </defs>
-              <text style={{ 
-                fontFamily: 'Cascadia Code, monospace', 
-                fill: '#D7D8FF', 
-                fontSize: '14px', 
+              <text style={{
+                fontFamily: 'Cascadia Code, monospace',
+                fill: '#EDFF62',
+                fontSize: '14px',
                 fontWeight: '800',
-                letterSpacing: '-0.5px' 
+                letterSpacing: '-0.5px'
               }}>
                 <textPath href="#circlePath" startOffset="50%" textAnchor="middle">
                   Confide in yourself
