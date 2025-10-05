@@ -157,8 +157,7 @@ def generate():
 
     return jsonify({
         "gemini_response": response_text,
-        "audio_path": speech_url,
-        "sentiment": json.loads(json.dumps(sentiment, default=float))
+        "audio_path": speech_url
     }), 200
 
 @app.route('/output/<path:filename>')

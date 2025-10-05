@@ -4,7 +4,6 @@ function TestPage() {
   const [input, setInput] = useState("");
   const [response, setResponse] = useState("");
   const [audioUrl, setAudioUrl] = useState(null);
-  const [sentiment, setSentiment] = useState("");
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
 
@@ -41,7 +40,6 @@ function TestPage() {
 
     setLoading(true);
     setResponse("");
-    setSentiment(null);
     setAudioUrl(null);
 
     try {
@@ -54,7 +52,6 @@ function TestPage() {
       const data = await res.json();
     
       setResponse(data.gemini_response);
-      setSentiment(data.sentiment);
       setAudioUrl(data.audio_path);
     } catch (err) {
       console.error(err);
@@ -68,7 +65,6 @@ function TestPage() {
   const handleSendText = async () => {
     setLoading(true);
     setResponse("");
-    setSentiment(null)
     setAudioUrl(null);
 
     try {
@@ -80,9 +76,7 @@ function TestPage() {
 
       if (!res.ok) throw new Error("Backend request failed");
       const data = await res.json();
-      console.log(data.sentiment)
       setResponse(data.gemini_response);
-      setSentiment(data.sentiment);
       setAudioUrl(data.audio_path);     } catch (err) {
       console.error(err);
       setResponse("Error: Could not reach backend.");
@@ -132,7 +126,7 @@ function TestPage() {
       {response && (
         <div className="mt-6 bg-white shadow rounded p-4 w-full max-w-lg">
           <h2 className="font-bold mb-2">Gemini Response:</h2>
-          <p className="text-gray-800">{response + '\n' + JSON.stringify(sentiment, null, 2)}</p>
+          <p className="text-gray-800">{response}</p>
         </div>
       )}
 
