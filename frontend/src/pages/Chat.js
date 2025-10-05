@@ -284,12 +284,12 @@ export default function Chat() {
 
         {/* Chat Area */}
         <div className="relative z-10 h-full flex flex-col">
-          <div className="flex-1 px-12 md:px-16 lg:px-20 pb-20 pt-8 flex items-center justify-center">
-            <div className="max-w-6xl w-full">
+          <div className="flex-1 px-4 md:px-8 pb-20 pt-8 flex items-center justify-center">
+            <div className="w-full max-w-[95%]">
               <div className="flex flex-col space-y-6">
                 {messages.map((msg, index) => (
                   <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-2xl px-6 py-4 max-w-lg">
+                    <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-2xl px-6 py-4 max-w-sm">
                       <p
                         className={`text-sm mb-1 font-semibold ${msg.sender === 'user' ? 'text-white/90' : 'text-[#EDFF62]'}`}
                         style={{ fontFamily: 'Cascadia Code, monospace' }}
@@ -301,14 +301,6 @@ export default function Chat() {
                   </div>
                 ))}
 
-                {loading && (
-                  <div className="flex justify-center">
-                    <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-2xl px-6 py-4 max-w-md">
-                      <p className="text-white/70" style={{ fontFamily: 'Cascadia Code, monospace' }}>Loading...</p>
-                    </div>
-                  </div>
-                )}
-
                 {audioUrl && (
                   <div className="flex justify-center">
                     <audio src={audioUrl} autoPlay style={{ display: "none" }} />
@@ -317,6 +309,15 @@ export default function Chat() {
               </div>
             </div>
           </div>
+
+          {/* Loading - Always centered */}
+          {loading && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+              <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-2xl px-6 py-4">
+                <p className="text-white/70" style={{ fontFamily: 'Cascadia Code, monospace' }}>Loading...</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bottom controls */}
