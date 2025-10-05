@@ -1,3 +1,20 @@
-venv/
-output/
+# Model weights and checkpoints
+model/pytorch_model.bin
+model/model.safetensors
+model/emotion_model_best.zip
+model/training_args.bin
+
+# Checkpoints folders if any
+emotion_model/
+checkpoint-*/
+
+# Notebooks and local artifacts
+*.ipynb_checkpoints/
+__pycache__/
+*.pyc
+
+# System / IDE files
+.DS_Store
 .env
+venv/
+.venv/
