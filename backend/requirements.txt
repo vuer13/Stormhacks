@@ -4,3 +4,7 @@ python-dotenv
 speechrecognition
 elevenlabs
 google-genai
+transformers
+torch
+pathlib
+imageio-ffmpeg

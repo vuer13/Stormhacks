@@ -20,8 +20,9 @@ venv/
 .venv/
 
 output/
-uploads/
+backend/uploads/
 __pycache__/
+*.wav
 
 model/*.zip
 model/*.safetensors

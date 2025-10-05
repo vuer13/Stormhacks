@@ -1,26 +1,40 @@
 import os
 import time
 import subprocess
+import json
 from dotenv import load_dotenv
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+
 import speech_recognition as sr
 from google import genai
 from elevenlabs.client import ElevenLabs
 
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
+import torch.nn.functional as F
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 
-
 gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 elevenlabs_client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
+MODEL_PATH = "../model"
+tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
+model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH)
+
+model.config.id2label = {0: "sadness", 1: "joy", 2: "love", 3: "anger", 4: "fear", 5: "surprise"}
+model.config.label2id = {"sadness": 0, "joy": 1, "love": 2, "anger": 3, "fear": 4, "surprise": 5}
+
+print("Label mapping applied:", model.config.id2label)
+
+model.eval()
 
 app = Flask(__name__)
 CORS(app)
-
 
 def convert_to_pcm_wav(file_path):
     """
@@ -57,6 +71,7 @@ def extract_text(audio_path):
     return text
 
 def create_prompt(prompt):
+    sentiments = predict_emotions(prompt)
     full_input = f"""You are a supportive assistant. Based on the user's message below, respond in a way that reassures, provides advice, or encourages them. 
                     Return in the same language that the user message gave.
 
@@ -64,7 +79,9 @@ def create_prompt(prompt):
                     - If the message describes something positive, encourage them and provide helpful advice for the future
                     
                     Keep messages relatively short. About one paragraph long is good enough. 
-
+                    
+                    The sentiment provided is here: {sentiments}
+                    
                     User message:
                     {prompt}"""
     
@@ -74,8 +91,9 @@ def create_prompt(prompt):
     )
     
     print(response.text)
+    print(sentiments)
     
-    return response.text
+    return response.text, sentiments
 
 def eleven_labs_tts(prompt, voice_id):
     """
@@ -100,6 +118,19 @@ def eleven_labs_tts(prompt, voice_id):
 
     return f"http://localhost:5000/output/{filename}"
 
+def predict_emotions(text):
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+    
+    with torch.no_grad():
+        outputs = model(**inputs)
+        logits = outputs.logits
+
+    probs = F.softmax(logits, dim=1).cpu().numpy()[0]
+    id2label = model.config.id2label
+    results = {id2label[i]: float(probs[i]) for i in range(len(probs))}
+    
+    results = dict(sorted(results.items(), key=lambda x: x[1], reverse=True))
+    return results
 
 
 @app.route('/generate', methods=["POST"])
@@ -121,12 +152,13 @@ def generate():
 
     # Generate response
     voice_id = "0lp4RIz96WD1RUtvEu3Q"  # default voice
-    response_text = create_prompt(text)
+    response_text, sentiment = create_prompt(text)
     speech_url = eleven_labs_tts(response_text, voice_id)
 
     return jsonify({
         "gemini_response": response_text,
-        "audio_path": speech_url
+        "audio_path": speech_url,
+        "sentiment": json.loads(json.dumps(sentiment, default=float))
     }), 200
 
 @app.route('/output/<path:filename>')
