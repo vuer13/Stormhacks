@@ -34,6 +34,7 @@ export default function Chat() {
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const audioRef = useRef(null);
 
   // Load messages from localStorage on mount
   useEffect(() => {
@@ -51,6 +52,18 @@ export default function Chat() {
       localStorage.setItem('chatMessages', JSON.stringify(messages));
     }
   }, [messages]);
+
+  // Handle deafen toggle - pause/play audio
+  useEffect(() => {
+    if (audioRef.current) {
+      if (isDeafened) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      } else {
+        audioRef.current.play().catch(err => console.log("Audio play prevented:", err));
+      }
+    }
+  }, [isDeafened]);
 
   // Clear chat history
   const clearChatHistory = () => {
@@ -303,7 +316,12 @@ export default function Chat() {
 
                 {audioUrl && (
                   <div className="flex justify-center">
-                    <audio src={audioUrl} autoPlay style={{ display: "none" }} />
+                    <audio
+                      ref={audioRef}
+                      src={audioUrl}
+                      autoPlay={!isDeafened}
+                      style={{ display: "none" }}
+                    />
                   </div>
                 )}
               </div>
@@ -342,7 +360,11 @@ export default function Chat() {
                   }
                   setIsMicMuted(!isMicMuted);
                 }}
-                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#474DFF] hover:bg-[#5B5FFF] hover:scale-90 hover:shadow-[0_0_15px_rgba(91,95,255,0.6)] transition-all duration-300"
+                className={`w-12 h-12 rounded-full flex items-center justify-center hover:scale-90 transition-all duration-300 ${
+                  recording
+                    ? 'bg-[#474DFF] hover:bg-[#5B5FFF] hover:shadow-[0_0_15px_rgba(91,95,255,0.6)]'
+                    : 'bg-red-600 hover:bg-red-700 hover:shadow-[0_0_15px_rgba(220,38,38,0.6)]'
+                }`}
               >
                 {recording ? (
                   <img src="/MicActive.svg" alt="Recording" className="w-6 h-6" />
