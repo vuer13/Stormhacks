@@ -1,7 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Chat() {
+  const navigate = useNavigate();
   const [isActive, setIsActive] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
 
@@ -24,13 +27,50 @@ export default function Chat() {
 
   // ----------------- BEGINNING OF BACKEND HOOKS -----------------
   const [input, setInput] = useState("");
-  const [response, setResponse] = useState("");
+  const [messages, setMessages] = useState([]); // Store all messages
   const [audioUrl, setAudioUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const audioRef = useRef(null);
+
+  // Load messages from localStorage on mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('chatMessages');
+    if (savedMessages) {
+      // Only load last 3 messages
+      const parsed = JSON.parse(savedMessages);
+      setMessages(parsed.slice(-3));
+    }
+  }, []);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('chatMessages', JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Handle deafen toggle - pause/play audio
+  useEffect(() => {
+    if (audioRef.current) {
+      if (isDeafened) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      } else {
+        audioRef.current.play().catch(err => console.log("Audio play prevented:", err));
+      }
+    }
+  }, [isDeafened]);
+
+  // Clear chat history
+  const clearChatHistory = () => {
+    setMessages([]);
+    localStorage.removeItem('chatMessages');
+    setAudioUrl(null);
+  };
 
   // Start recording
   const startRecording = async () => {
@@ -61,8 +101,15 @@ export default function Chat() {
     formData.append("file", blob, "recording.wav");
 
     setLoading(true);
-    setResponse("");
     setAudioUrl(null);
+
+    // Add user message (audio recording indicator)
+    const userMessage = { sender: "user", text: "[Voice message]", timestamp: Date.now() };
+    setMessages(prev => {
+      const updated = [...prev, userMessage];
+      // Keep only last 3 messages
+      return updated.slice(-3);
+    });
 
     try {
       const res = await fetch("http://localhost:5000/generate", {
@@ -73,11 +120,22 @@ export default function Chat() {
       if (!res.ok) throw new Error("Backend request failed");
       const data = await res.json();
 
-      setResponse(data.gemini_response);
+      // Add AI response
+      const aiMessage = { sender: "ai", text: data.gemini_response, timestamp: Date.now() };
+      setMessages(prev => {
+        const updated = [...prev, aiMessage];
+        // Keep only last 3 messages
+        return updated.slice(-3);
+      });
       setAudioUrl(data.audio_path);
     } catch (err) {
       console.error(err);
-      setResponse("Error: Could not reach backend.");
+      const errorMessage = { sender: "ai", text: "Error: Could not reach backend.", timestamp: Date.now() };
+      setMessages(prev => {
+        const updated = [...prev, errorMessage];
+        // Keep only last 3 messages
+        return updated.slice(-3);
+      });
     } finally {
       setLoading(false);
     }
@@ -86,27 +144,48 @@ export default function Chat() {
   // Send text input
   const handleSendText = async () => {
     if (!input.trim()) return; // no empty messages
+
+    const userText = input;
+    setInput(""); // clear text box immediately
     setLoading(true);
-    setResponse("");
     setAudioUrl(null);
+
+    // Add user message
+    const userMessage = { sender: "user", text: userText, timestamp: Date.now() };
+    setMessages(prev => {
+      const updated = [...prev, userMessage];
+      // Keep only last 3 messages
+      return updated.slice(-3);
+    });
 
     try {
       const res = await fetch("http://localhost:5000/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: input }),
+        body: JSON.stringify({ text: userText }),
       });
 
       if (!res.ok) throw new Error("Backend request failed");
       const data = await res.json();
-      setResponse(data.gemini_response);
+
+      // Add AI response
+      const aiMessage = { sender: "ai", text: data.gemini_response, timestamp: Date.now() };
+      setMessages(prev => {
+        const updated = [...prev, aiMessage];
+        // Keep only last 3 messages
+        return updated.slice(-3);
+      });
       setAudioUrl(data.audio_path);
     } catch (err) {
       console.error(err);
-      setResponse("Error: Could not reach backend.");
+      const errorMessage = { sender: "ai", text: "Error: Could not reach backend.", timestamp: Date.now() };
+      setMessages(prev => {
+        const updated = [...prev, errorMessage];
+        // Keep only last 3 messages
+        return updated.slice(-3);
+      });
     } finally {
       setLoading(false);
-      setInput(""); // clear text box
     }
   };
   // ----------------- END OF BACKEND HOOKS -----------------
@@ -142,9 +221,52 @@ export default function Chat() {
           50% { transform: translate(130px, -80px) scale(0.9); }
           80% { transform: translate(-150px, 100px) scale(1.1); }
         }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
       `}</style>
 
       <div className="h-screen w-screen bg-black relative overflow-hidden">
+        {/* Navigation Bar */}
+        <nav className="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-[#474DFF]/30 backdrop-blur-sm rounded-2xl px-8 sm:px-12 md:px-16 lg:px-24 py-2 sm:py-3 md:py-4 w-[calc(100%-4rem)] sm:w-[calc(100%-6rem)] md:w-[calc(100%-8rem)] lg:w-[calc(100%-12rem)] max-w-[1200px]">
+          <div className="flex items-center justify-around">
+            <button
+              onClick={() => navigate('/')}
+              className="text-[#D7D8FF] hover:text-[#9B9BFF] hover:scale-90 transition-all duration-300 text-xs sm:text-sm md:text-base font-medium"
+              style={{
+                textShadow: '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.textShadow = 'none'}
+              onMouseLeave={(e) => e.currentTarget.style.textShadow = '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'}
+            >
+              Home
+            </button>
+            <button
+              onClick={() => navigate('/about')}
+              className="text-[#D7D8FF] hover:text-[#9B9BFF] hover:scale-90 transition-all duration-300 text-xs sm:text-sm md:text-base font-medium"
+              style={{
+                textShadow: '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.textShadow = 'none'}
+              onMouseLeave={(e) => e.currentTarget.style.textShadow = '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'}
+            >
+              About
+            </button>
+            <button
+              className="text-[#D7D8FF] hover:text-[#9B9BFF] hover:scale-90 transition-all duration-300 text-xs sm:text-sm md:text-base font-medium"
+              style={{
+                textShadow: '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.textShadow = 'none'}
+              onMouseLeave={(e) => e.currentTarget.style.textShadow = '0 0 10px rgba(215, 216, 255, 0.6), 0 0 20px rgba(215, 216, 255, 0.4)'}
+            >
+              Settings
+            </button>
+          </div>
+        </nav>
+
         {/* Clouds */}
         <div className="absolute inset-0">
           {Object.entries(cloudPositions).map(([key, pos], idx) => (
@@ -163,30 +285,67 @@ export default function Chat() {
           ))}
         </div>
 
+        {/* Center Images */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+          {/* Spinning Flower behind */}
+          <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center" style={{ animation: 'spin 10s linear infinite' }}>
+            <img src="/Flower.svg" alt="Flower" className="w-80 h-80 sm:w-96 sm:h-96 md:w-[28rem] md:h-[28rem] lg:w-[32rem] lg:h-[32rem] opacity-60" />
+          </div>
+          {/* Center Image on top */}
+          <img src="/CenterImage.svg" alt="Center" className="relative z-10 w-80 h-80 sm:w-96 sm:h-96 md:w-[28rem] md:h-[28rem] lg:w-[32rem] lg:h-[32rem] opacity-70" />
+        </div>
+
         {/* Chat Area */}
         <div className="relative z-10 h-full flex flex-col">
-          <div className="p-6">
-            <h1 className="text-white text-2xl font-bold">
-              Chat with your future self
-            </h1>
+          <div className="flex-1 px-4 md:px-8 pb-20 pt-8 flex items-center justify-center">
+            <div className="w-full max-w-[95%]">
+              <div className="flex flex-col space-y-6">
+                {messages.map((msg, index) => (
+                  <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-2xl px-6 py-4 max-w-sm">
+                      <p
+                        className={`text-sm mb-1 font-semibold ${msg.sender === 'user' ? 'text-white/90' : 'text-[#EDFF62]'}`}
+                        style={{ fontFamily: 'Cascadia Code, monospace' }}
+                      >
+                        {msg.sender === 'user' ? 'You' : 'Future You'}
+                      </p>
+                      <p className="text-white/70" style={{ fontFamily: 'Cascadia Code, monospace' }}>{msg.text}</p>
+                    </div>
+                  </div>
+                ))}
+
+                {audioUrl && (
+                  <div className="flex justify-center">
+                    <audio
+                      ref={audioRef}
+                      src={audioUrl}
+                      autoPlay={!isDeafened}
+                      style={{ display: "none" }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 pb-20 text-white">
-            {loading && <p>Loading...</p>}
-            {response && <p className="mb-2">Future You: {response}</p>}
-            {audioUrl && (
-              <audio controls src={audioUrl} className="mt-2" autoPlay />
-            )}
-          </div>
+          {/* Loading - Always centered */}
+          {loading && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+              <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-2xl px-6 py-4">
+                <p className="text-white/70" style={{ fontFamily: 'Cascadia Code, monospace' }}>Loading...</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bottom controls */}
-        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-20">
+        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 z-20">
           {/* Audio buttons */}
           <div
-            className={`transition-all duration-[1800ms] mb-4 flex justify-center`}
+            className={`transition-all flex justify-center`}
             style={{
-              transform: isActive ? "translateY(-80px)" : "translateY(0)",
+              transform: isActive ? "translateY(-100px)" : isHovered ? "translateY(-15px)" : "translateY(0)",
+              marginBottom: "16px",
               transition: "all 1.8s cubic-bezier(0.25, 0.1, 0.25, 1)",
             }}
           >
@@ -201,22 +360,43 @@ export default function Chat() {
                   }
                   setIsMicMuted(!isMicMuted);
                 }}
-                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#474DFF] hover:bg-[#5B5FFF] transition-all"
+                className={`w-12 h-12 rounded-full flex items-center justify-center hover:scale-90 transition-all duration-300 ${
+                  recording
+                    ? 'bg-[#474DFF] hover:bg-[#5B5FFF] hover:shadow-[0_0_15px_rgba(91,95,255,0.6)]'
+                    : 'bg-red-600 hover:bg-red-700 hover:shadow-[0_0_15px_rgba(220,38,38,0.6)]'
+                }`}
               >
                 {recording ? (
-                  <span className="text-white">⏹</span>
+                  <img src="/MicActive.svg" alt="Recording" className="w-6 h-6" />
                 ) : (
-                  <span className="text-white">🎙</span>
+                  <img src="/MicDeactive.svg" alt="Mic Muted" className="w-6 h-6" />
                 )}
               </button>
 
               {/* Deafen button */}
               <button
                 onClick={() => setIsDeafened(!isDeafened)}
-                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#474DFF] hover:bg-[#5B5FFF] transition-all"
+                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#474DFF] hover:bg-[#5B5FFF] hover:scale-90 hover:shadow-[0_0_15px_rgba(91,95,255,0.6)] transition-all duration-300"
               >
-                {isDeafened ? "🙉" : "🎧"}
+                {isDeafened ? (
+                  <img src="/DeafenOn.svg" alt="Deafened" className="w-6 h-6" />
+                ) : (
+                  <img src="/DeafenOff.svg" alt="Not Deafened" className="w-6 h-6" />
+                )}
               </button>
+
+              {/* Clear Chat button */}
+              {messages.length > 0 && (
+                <button
+                  onClick={clearChatHistory}
+                  className="w-12 h-12 rounded-full flex items-center justify-center bg-[#474DFF] hover:bg-[#5B5FFF] hover:scale-90 hover:shadow-[0_0_15px_rgba(91,95,255,0.6)] transition-all duration-300"
+                  title="Clear Chat"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
 
@@ -228,18 +408,26 @@ export default function Chat() {
               value={input}
               onFocus={() => setIsActive(true)}
               onBlur={() => setIsActive(false)}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendText()}
-              className={`transition-all duration-[1800ms] text-white text-sm
-                         border-none outline-none
+              className={`text-white text-sm outline-none
                          ${
                            isActive
-                             ? "w-[600px] h-[120px] px-6 py-4 bg-[#2D31B0]/10 border-2 border-[#9B9BFF] placeholder-[#9B9BFF]/70"
-                             : "w-[220px] h-16 px-5 pb-8 pt-3 bg-[#474DFF]/50 placeholder-white/70"
+                             ? "w-[600px] h-[120px] px-6 py-4 bg-[#2D31B0]/10 border-2 border-[#9B9BFF]/50 placeholder-[#9B9BFF]/70 translate-y-[-100px] mix-blend-color-burn"
+                             : isHovered
+                             ? "w-[242px] h-[90px] px-5 pb-8 pt-3 bg-[#5B5FFF]/40 border-2 border-white/30 placeholder-white/90 shadow-[inset_0_-20px_40px_rgba(255,255,255,0.3)] translate-y-[-15px]"
+                             : "w-[220px] h-16 px-5 pb-8 pt-3 bg-[#474DFF]/30 border-2 border-white/20 placeholder-white/70"
                          }`}
               style={{
                 fontFamily: "Cascadia Code, monospace",
                 borderRadius: "16px",
+                transition: isActive
+                  ? "all 1.8s cubic-bezier(0.25, 0.1, 0.25, 1)"
+                  : isHovered
+                  ? "all 0.7s cubic-bezier(0.25, 0.1, 0.25, 1)"
+                  : "all 1.8s cubic-bezier(0.25, 0.1, 0.25, 1)",
               }}
             />
           </div>

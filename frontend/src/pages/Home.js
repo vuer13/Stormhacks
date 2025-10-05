@@ -140,84 +140,84 @@ export default function Home() {
         </div>
 
         {/* Main content */}
-        <div className="relative z-10 flex flex-col items-start pt-16 px-8">
+        <div className="relative z-10 flex flex-col items-center justify-center pt-8 px-8 min-h-screen">
           {/* FutureVent Logo */}
-          <img 
-            src="/FutureVentText.png" 
-            alt="FutureVent" 
-            className="w-auto h-56 md:h-64 ml-32"
+          <img
+            src="/typography.png"
+            alt="FutureVent"
+            className="w-auto h-[22rem] sm:h-[24rem] md:h-[26rem] lg:h-[28rem]"
           />
-          
-          {/* Description Text */}
-          <img 
-            src="/DescriptionText.png" 
-            alt="Get in touch with your potential future self and share your life problems." 
-            className="w-auto h-10 md:h-12 mt-6 ml-36"
-          />
-        </div>
 
-        {/* Microphone Button - Centered Bottom Half */}
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10">
-          <div className="relative inline-block">
-            {/* Circular Text - Spins continuously, pauses on hover */}
-            <svg 
-              id="circularText"
-              className="absolute top-1/2 left-1/2 pointer-events-none"
-              width="200"
-              height="200"
-              viewBox="0 0 200 200"
-              style={{ 
-                animation: 'spinText 8s linear infinite'
-              }}
-            >
-              <defs>
-                <path
-                  id="circlePath"
-                  d="M 100, 100 m -80, 0 a 80,80 0 1,1 160,0 a 80,80 0 1,1 -160,0"
+          {/* Description Text */}
+          <img
+            src="/HomeDescriptionText.svg"
+            alt="Get in touch with your potential future self and share your life problems."
+            className="w-auto h-8 sm:h-9 md:h-10 lg:h-12 mt-8 md:mt-10"
+          />
+
+          {/* Microphone Button */}
+          <div className="mt-12 sm:mt-16 md:mt-20 lg:mt-24">
+            <div className="relative inline-block">
+              {/* Circular Text - Spins continuously, pauses on hover */}
+              <svg
+                id="circularText"
+                className="absolute top-1/2 left-1/2 pointer-events-none"
+                width="180"
+                height="180"
+                viewBox="0 0 200 200"
+                style={{
+                  animation: 'spinText 8s linear infinite'
+                }}
+              >
+                <defs>
+                  <path
+                    id="circlePath"
+                    d="M 100, 100 m -80, 0 a 80,80 0 1,1 160,0 a 80,80 0 1,1 -160,0"
+                  />
+                </defs>
+                <text style={{
+                  fontFamily: 'Cascadia Code, monospace',
+                  fill: '#EDFF62',
+                  fontSize: '13px',
+                  fontWeight: '800',
+                  letterSpacing: '-0.5px'
+                }}>
+                  <textPath href="#circlePath" startOffset="50%" textAnchor="middle">
+                    Confide in yourself
+                  </textPath>
+                </text>
+              </svg>
+
+              {/* Microphone Button */}
+              <button
+
+                className="relative transition-transform duration-300 hover:scale-105"
+                style={{
+                  animation: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.animation = 'pulseGlow 3.5s ease-in-out infinite';
+                  const textEl = document.getElementById('circularText');
+
+                  // Pause animation and lock position
+                  textEl.style.animationPlayState = 'paused';
+                }}
+                onClick={() => navigate('/chat')}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.animation = 'none';
+                  const textEl = document.getElementById('circularText');
+
+                  // Resume animation from current position
+                  textEl.style.animationPlayState = 'running';
+                }}
+              >
+                <img
+                  src="/MIC.png"
+                  alt="Confide in yourself"
+                  className="w-auto h-28 sm:h-32 md:h-36"
                 />
-              </defs>
-              <text style={{ 
-                fontFamily: 'Cascadia Code, monospace', 
-                fill: '#D7D8FF', 
-                fontSize: '14px', 
-                fontWeight: '800',
-                letterSpacing: '-0.5px' 
-              }}>
-                <textPath href="#circlePath" startOffset="50%" textAnchor="middle">
-                  Confide in yourself
-                </textPath>
-              </text>
-            </svg>
-            
-            {/* Microphone Button */}
-            <button 
-            
-              className="relative transition-transform duration-300 hover:scale-105"
-              style={{
-                animation: 'none'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.animation = 'pulseGlow 3.5s ease-in-out infinite';
-                const textEl = document.getElementById('circularText');
-                
-                // Pause animation and lock position
-                textEl.style.animationPlayState = 'paused';
-              }}
-              onClick={() => navigate('/chat')}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.animation = 'none';
-                const textEl = document.getElementById('circularText');
-                
-                // Resume animation from current position
-                textEl.style.animationPlayState = 'running';
-              }}
-            >
-              <img 
-                src="/MIC.png" 
-                alt="Confide in yourself" 
-                className="w-auto h-36 md:h-40"
-              />
-            </button>
+              </button>
+            </div>
           </div>
         </div>
       </div>
