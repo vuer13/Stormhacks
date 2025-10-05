@@ -18,3 +18,7 @@ __pycache__/
 .env
 venv/
 .venv/
+
+output/
+uploads/
+__pycache__/
