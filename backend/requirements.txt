@@ -1,0 +1,6 @@
+flask
+flask-cors
+python-dotenv
+speechrecognition
+elevenlabs
+google-genai

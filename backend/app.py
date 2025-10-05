@@ -1,71 +1,64 @@
+import os
+import time
+import subprocess
+from dotenv import load_dotenv
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+import speech_recognition as sr
 from google import genai
-from elevenlabs import play
 from elevenlabs.client import ElevenLabs
 
-import speech_recognition as sr
 
-from flask import Flask, request, jsonify, send_file, send_from_directory
-
-from dotenv import load_dotenv
-import os
-
-from flask_cors import CORS
-
-import time
-
-# Load .env stuff
 load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 
-# Set up Gemini
-gemini_api_key = os.getenv("GEMINI_API_KEY")
-gemini_client = genai.Client(api_key=gemini_api_key)
 
-# Set up ElevenLabs
-elevenlabs_api_key = os.getenv("ELEVENLABS_API_KEY")
-elevenlabs_client = ElevenLabs(api_key=elevenlabs_api_key)
+gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+elevenlabs_client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
-# Flask
+
 app = Flask(__name__)
 CORS(app)
-@app.route('/generate', methods=["POST"])
-def generate():
-    if "file" in request.files:
-        file = request.files["file"]
-        filepath = os.path.join("uploads", file.filename)
-        os.makedirs("uploads", exist_ok=True)
-        file.save(filepath)
-        
-        text = extract_text(filepath)
-        
-        voice = elevenlabs_client.voices.add(
-            name="VoiceClone",
-            files=[filepath]
-        )
-        
-        voice_id = voice.voice_id
-        use_settings = True
-    elif request.is_json:
-        data = request.get_json()
-        text = data.get("text")
-        
-        voice_id = "0lp4RIz96WD1RUtvEu3Q" # Old grandfather voice
-        use_settings = False
-    else:
-        return jsonify({"error": "Invalid input"}), 400
-    
-    
-    response = create_prompt(text) # Gemini text
-    speech = eleven_labs(response, voice_id, use_settings) # Send some old grandpa voice is default
-        
-    return jsonify({
-        "gemini_response": response,
-        "audio_path": speech
-    }), 200
 
-# Function to create prompts
+
+def convert_to_pcm_wav(file_path):
+    """
+    Convert audio to mono 16kHz 16-bit PCM WAV using ffmpeg.
+    """
+    base_dir = os.path.dirname(file_path)
+    filename_base = os.path.basename(file_path).rsplit(".", 1)[0]
+    pcm_path = os.path.join(base_dir, f"{filename_base}_pcm.wav")
+
+    import imageio_ffmpeg as ffmpeg
+    ffmpeg_exe = os.path.abspath(ffmpeg.get_ffmpeg_exe())
+
+    cmd = [
+        ffmpeg_exe,
+        "-y",               # overwrite output
+        "-i", file_path,    # input file
+        "-ac", "1",         # mono
+        "-ar", "16000",     # 16kHz
+        "-sample_fmt", "s16", # 16-bit PCM
+        pcm_path
+    ]
+    subprocess.run(cmd, check=True)
+    return pcm_path
+
+def extract_text(audio_path):
+    """
+    Extract text from WAV audio using Google Speech Recognition.
+    """
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(audio_path) as source:
+        audio_data = recognizer.record(source)
+        text = recognizer.recognize_google(audio_data)
+        print(f"Extracted Text: {text}")
+    return text
+
 def create_prompt(prompt):
     full_input = f"""You are a supportive assistant. Based on the user's message below, respond in a way that reassures, provides advice, or encourages them. 
-                    You are acting as the person's future self.  Return in the same language
+                    You are acting as the person's future self so mention that the persons future will turn out fine.  Return in the same language
                     that the user message gave.
 
                     - If the message describes something negative, offer empathy and reassurance about the future
@@ -85,44 +78,57 @@ def create_prompt(prompt):
     
     return response.text
 
-# Function to turn text into speech
-def eleven_labs(prompt, voice_id, settings):    
+def eleven_labs_tts(prompt, voice_id):
+    """
+    Convert text to speech with ElevenLabs.
+    """
     kwargs = {
         "voice_id": voice_id,
         "model_id": "eleven_multilingual_v2",
         "text": prompt
     }
-    
-    if settings:
-        kwargs["voice_settings"] = {
-            "stability": 0.3,
-            "similarity_boost": 0.7,
-            "style": 0.6,
-            "use_effects_mixer": True
-        }
-    
+
     audio = elevenlabs_client.text_to_speech.convert(**kwargs)
-    
-    #Append timestamp to filename so that the audio file updates properly when we give it new input
+
     filename = f"output_{int(time.time())}.mp3"
     output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, filename)
-    
+
     with open(output_path, "wb") as f:
         for chunk in audio:
             f.write(chunk)
-            
-    return output_path
-        
-# Get text from audio    
-def extract_text(audio_path):
-    recognizer = sr.Recognizer()
-    with sr.AudioFile(audio_path) as source:
-        audio_data = recognizer.record(source)
-        text = recognizer.recognize_google(audio_data)
-    return text
 
+    return f"http://localhost:5000/output/{filename}"
+
+
+
+@app.route('/generate', methods=["POST"])
+def generate():
+    if "file" in request.files:
+        file = request.files["file"]
+        filepath = os.path.join("uploads", file.filename)
+        os.makedirs("uploads", exist_ok=True)
+        file.save(filepath)
+
+        # Convert to WAV and extract text
+        wav_path = convert_to_pcm_wav(filepath)
+        text = extract_text(wav_path)
+    elif request.is_json:
+        data = request.get_json()
+        text = data.get("text")
+    else:
+        return jsonify({"error": "Invalid input"}), 400
+
+    # Generate response
+    voice_id = "0lp4RIz96WD1RUtvEu3Q"  # default voice
+    response_text = create_prompt(text)
+    speech_url = eleven_labs_tts(response_text, voice_id)
+
+    return jsonify({
+        "gemini_response": response_text,
+        "audio_path": speech_url
+    }), 200
 
 @app.route('/output/<path:filename>')
 def serve_output(filename):

@@ -1,12 +1,68 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 
 function TestPage() {
   const [input, setInput] = useState("");
   const [response, setResponse] = useState("");
   const [audioUrl, setAudioUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [recording, setRecording] = useState(false);
 
-  const handleSend = async () => {
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
+  // Start recording
+  const startRecording = async () => {
+    setRecording(true);
+    audioChunksRef.current = [];
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorderRef.current = new MediaRecorder(stream);
+
+    mediaRecorderRef.current.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunksRef.current.push(e.data);
+    };
+
+    mediaRecorderRef.current.onstop = handleStopRecording;
+    mediaRecorderRef.current.start();
+  };
+
+  // Stop recording
+  const stopRecording = () => {
+    setRecording(false);
+    mediaRecorderRef.current.stop();
+  };
+
+  // Send recorded audio to backend
+  const handleStopRecording = async () => {
+    const blob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+    const formData = new FormData();
+    formData.append("file", blob, "recording.wav");
+
+    setLoading(true);
+    setResponse("");
+    setAudioUrl(null);
+
+    try {
+      const res = await fetch("http://localhost:5000/generate", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Backend request failed");
+      const data = await res.json();
+
+      setResponse(data.gemini_response);
+      setAudioUrl(data.audio_path);
+    } catch (err) {
+      console.error(err);
+      setResponse("Error: Could not reach backend.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Send text input (existing functionality)
+  const handleSendText = async () => {
     setLoading(true);
     setResponse("");
     setAudioUrl(null);
@@ -19,12 +75,10 @@ function TestPage() {
       });
 
       if (!res.ok) throw new Error("Backend request failed");
-
       const data = await res.json();
+
       setResponse(data.gemini_response);
-      setAudioUrl(`http://localhost:5000/${data.audio_path}`);
-      console.log(data);
-    } catch (err) {
+      setAudioUrl(data.audio_path);     } catch (err) {
       console.error(err);
       setResponse("Error: Could not reach backend.");
     } finally {
@@ -44,13 +98,31 @@ function TestPage() {
         placeholder="Type a message to send to the backend..."
       />
 
-      <button
-        onClick={handleSend}
-        className="px-6 py-2 bg-blue-500 text-white font-semibold rounded hover:bg-blue-600 disabled:bg-gray-400"
-        disabled={loading || !input}
-      >
-        {loading ? "Processing..." : "Send to Backend"}
-      </button>
+      <div className="flex gap-4 mb-4">
+        <button
+          onClick={handleSendText}
+          className="px-6 py-2 bg-blue-500 text-white font-semibold rounded hover:bg-blue-600 disabled:bg-gray-400"
+          disabled={loading || !input}
+        >
+          {loading ? "Processing..." : "Send Text"}
+        </button>
+
+        {recording ? (
+          <button
+            onClick={stopRecording}
+            className="px-6 py-2 bg-red-500 text-white font-semibold rounded hover:bg-red-600"
+          >
+            Stop Recording
+          </button>
+        ) : (
+          <button
+            onClick={startRecording}
+            className="px-6 py-2 bg-green-500 text-white font-semibold rounded hover:bg-green-600"
+          >
+            Record
+          </button>
+        )}
+      </div>
 
       {response && (
         <div className="mt-6 bg-white shadow rounded p-4 w-full max-w-lg">
