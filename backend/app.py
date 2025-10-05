@@ -80,7 +80,7 @@ def create_prompt(prompt):
                     
                     Keep messages relatively short. About one paragraph long is good enough. 
                     
-                    The sentiment provided is here: {sentiments}
+                    The sentiment provided is here: {sentiments}. Please use these sentiments to understand how the user is feeling, and then give a response accordingly.
                     
                     User message:
                     {prompt}"""
