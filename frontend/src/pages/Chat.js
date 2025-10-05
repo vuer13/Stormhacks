@@ -39,9 +39,9 @@ export default function Chat() {
   useEffect(() => {
     const savedMessages = localStorage.getItem('chatMessages');
     if (savedMessages) {
-      // Only load last 4 messages
+      // Only load last 3 messages
       const parsed = JSON.parse(savedMessages);
-      setMessages(parsed.slice(-4));
+      setMessages(parsed.slice(-3));
     }
   }, []);
 
@@ -51,6 +51,13 @@ export default function Chat() {
       localStorage.setItem('chatMessages', JSON.stringify(messages));
     }
   }, [messages]);
+
+  // Clear chat history
+  const clearChatHistory = () => {
+    setMessages([]);
+    localStorage.removeItem('chatMessages');
+    setAudioUrl(null);
+  };
 
   // Start recording
   const startRecording = async () => {
@@ -87,8 +94,8 @@ export default function Chat() {
     const userMessage = { sender: "user", text: "[Voice message]", timestamp: Date.now() };
     setMessages(prev => {
       const updated = [...prev, userMessage];
-      // Keep only last 4 messages
-      return updated.slice(-4);
+      // Keep only last 3 messages
+      return updated.slice(-3);
     });
 
     try {
@@ -104,8 +111,8 @@ export default function Chat() {
       const aiMessage = { sender: "ai", text: data.gemini_response, timestamp: Date.now() };
       setMessages(prev => {
         const updated = [...prev, aiMessage];
-        // Keep only last 4 messages
-        return updated.slice(-4);
+        // Keep only last 3 messages
+        return updated.slice(-3);
       });
       setAudioUrl(data.audio_path);
     } catch (err) {
@@ -113,8 +120,8 @@ export default function Chat() {
       const errorMessage = { sender: "ai", text: "Error: Could not reach backend.", timestamp: Date.now() };
       setMessages(prev => {
         const updated = [...prev, errorMessage];
-        // Keep only last 4 messages
-        return updated.slice(-4);
+        // Keep only last 3 messages
+        return updated.slice(-3);
       });
     } finally {
       setLoading(false);
@@ -134,8 +141,8 @@ export default function Chat() {
     const userMessage = { sender: "user", text: userText, timestamp: Date.now() };
     setMessages(prev => {
       const updated = [...prev, userMessage];
-      // Keep only last 4 messages
-      return updated.slice(-4);
+      // Keep only last 3 messages
+      return updated.slice(-3);
     });
 
     try {
@@ -152,8 +159,8 @@ export default function Chat() {
       const aiMessage = { sender: "ai", text: data.gemini_response, timestamp: Date.now() };
       setMessages(prev => {
         const updated = [...prev, aiMessage];
-        // Keep only last 4 messages
-        return updated.slice(-4);
+        // Keep only last 3 messages
+        return updated.slice(-3);
       });
       setAudioUrl(data.audio_path);
     } catch (err) {
@@ -161,8 +168,8 @@ export default function Chat() {
       const errorMessage = { sender: "ai", text: "Error: Could not reach backend.", timestamp: Date.now() };
       setMessages(prev => {
         const updated = [...prev, errorMessage];
-        // Keep only last 4 messages
-        return updated.slice(-4);
+        // Keep only last 3 messages
+        return updated.slice(-3);
       });
     } finally {
       setLoading(false);
@@ -279,10 +286,6 @@ export default function Chat() {
         <div className="relative z-10 h-full flex flex-col">
           <div className="flex-1 px-12 md:px-16 lg:px-20 pb-20 pt-8 flex items-center justify-center">
             <div className="max-w-6xl w-full">
-              {messages.length === 0 && !loading && (
-                <p className="text-[#9B9BFF]/50 text-sm mt-4 text-center">Your conversation will appear here...</p>
-              )}
-
               <div className="flex flex-col space-y-6">
                 {messages.map((msg, index) => (
                   <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -358,6 +361,19 @@ export default function Chat() {
                   <img src="/DeafenOff.svg" alt="Not Deafened" className="w-6 h-6" />
                 )}
               </button>
+
+              {/* Clear Chat button */}
+              {messages.length > 0 && (
+                <button
+                  onClick={clearChatHistory}
+                  className="w-12 h-12 rounded-full flex items-center justify-center bg-[#474DFF] hover:bg-[#5B5FFF] hover:scale-90 hover:shadow-[0_0_15px_rgba(91,95,255,0.6)] transition-all duration-300"
+                  title="Clear Chat"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
 
